@@ -18,6 +18,9 @@ use function Hyperf\Config\config;
 #[Controller]
 class HealthController
 {
+    /**
+     * @return array<string, mixed>
+     */
     #[GetMapping(path: '/health')]
     public function index(): array
     {
@@ -35,7 +38,7 @@ class HealthController
                 'mysql' => $dbStatus,
             ],
             'correlation_id' => (string) Context::get(CorrelationIdMiddleware::CONTEXT_KEY, ''),
-            'timestamp' => (new DateTimeImmutable('now', new DateTimeZone('UTC')))->format(DATE_ATOM),
+            'timestamp' => new DateTimeImmutable('now', new DateTimeZone('UTC'))->format(DATE_ATOM),
         ];
     }
 }

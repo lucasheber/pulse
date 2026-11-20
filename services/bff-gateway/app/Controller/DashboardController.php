@@ -26,6 +26,8 @@ class DashboardController
     /**
      * Starter API Composition endpoint demonstrating Swoole Parallel coroutines
      * with Correlation-ID propagation and graceful degradation.
+     *
+     * @return array<string, mixed>
      */
     #[GetMapping(path: 'today')]
     public function today(): array
@@ -37,13 +39,13 @@ class DashboardController
 
         $parallel = new Parallel(2);
 
-        $parallel->add(fn () => $this->fetchServiceHealth($financeUrl, $correlationId), 'finance');
-        $parallel->add(fn () => $this->fetchServiceHealth($plannerUrl, $correlationId), 'planner');
+        $parallel->add(fn (): array => $this->fetchServiceHealth($financeUrl, $correlationId), 'finance');
+        $parallel->add(fn (): array => $this->fetchServiceHealth($plannerUrl, $correlationId), 'planner');
 
         $results = $parallel->wait();
 
         return [
-            'date' => (new DateTimeImmutable('now', new DateTimeZone('UTC')))->format('Y-m-d'),
+            'date' => new DateTimeImmutable('now', new DateTimeZone('UTC'))->format('Y-m-d'),
             'correlation_id' => $correlationId,
             'services' => [
                 'bff' => ['status' => 'ok'],
@@ -53,6 +55,9 @@ class DashboardController
         ];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     private function fetchServiceHealth(string $baseUrl, string $correlationId): array
     {
         try {

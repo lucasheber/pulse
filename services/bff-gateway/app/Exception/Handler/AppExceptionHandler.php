@@ -27,7 +27,7 @@ class AppExceptionHandler extends ExceptionHandler
             $correlationId,
             $throwable->getMessage(),
             $throwable->getFile(),
-            $throwable->getLine()
+            $throwable->getLine(),
         ));
 
         $payload = json_encode([
