@@ -196,10 +196,50 @@ services:
     networks:
       - pulse-net
 
+  sonarqube:
+    image: sonarqube:community
+    container_name: pulse-sonarqube
+    profiles: ["quality", "quality-scan"]
+    restart: unless-stopped
+    ports:
+      - "${SONARQUBE_PORT:-9000}:9000"
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_extensions:/opt/sonarqube/extensions
+      - sonarqube_logs:/opt/sonarqube/logs
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9000/api/system/status | grep -q '\"status\":\"UP\"'"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    networks:
+      - pulse-net
+
+  sonar-scanner:
+    image: sonarsource/sonar-scanner-cli:latest
+    platform: linux/amd64
+    container_name: pulse-sonar-scanner
+    profiles: ["quality-scan"]
+    working_dir: /usr/src
+    volumes:
+      - .:/usr/src
+    environment:
+      SONAR_HOST_URL: http://sonarqube:9000
+      SONAR_TOKEN: ${SONAR_TOKEN:-}
+    depends_on:
+      sonarqube:
+        condition: service_healthy
+    networks:
+      - pulse-net
+
 volumes:
   mysql_data:
   redis_data:
   rabbitmq_data:
+  sonarqube_data:
+  sonarqube_extensions:
+  sonarqube_logs:
 
 networks:
   pulse-net:

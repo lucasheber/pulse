@@ -72,7 +72,8 @@ O projeto utiliza uma abordagem de **Monorepo** com containers isolados e comuni
 | **BFF Gateway** | `http://localhost:9501` | Gateway Principal / Auth |
 | **Finance Service** | `http://localhost:9502` | API de Finanças |
 | **Planner Service** | `http://localhost:9503` | API de Estudos & Tarefas |
-| **RabbitMQ UI** | `http://localhost:15672` | Gestão de Filas (guest/guest) |
+| **RabbitMQ UI** | `http://localhost:15672` | Gestão de Filas (`pulse` / `pulse_secret`) |
+| **SonarQube** *(opcional)* | `http://localhost:9000` | Qualidade de código, coverage e PHPStan (`--profile quality`) |
 
 ---
 
@@ -92,21 +93,39 @@ Para mais detalhes, consulte a documentação técnica em:
 
 ---
 
-## 🧪 Comandos Úteis (Desenvolvimento)
+## 🧪 Comandos Úteis (Desenvolvimento & Qualidade)
 
-- **Logs em tempo real:**
+- **Logs em tempo real (erros e exceptions):**
   ```bash
   docker compose logs -f <nome-do-serviço>
   ```
 
-- **Executar Testes:**
+- **Pipeline completo de qualidade (CS-Fixer + Rector + PHPStan + Testes + Coverage + TS):**
   ```bash
-  docker compose exec <serviço> composer test
+  ./scripts/quality.sh
   ```
 
-- **Análise Estática (PHPStan):**
+- **Executar por serviço (`bff-gateway`, `finance-service` ou `planner-service`):**
   ```bash
-  docker compose exec <serviço> composer analyse
+  docker compose exec <serviço> composer test            # PHPUnit (co-phpunit)
+  docker compose exec <serviço> composer test:coverage   # Testes + Coverage (HTML + Clover XML via PCOV)
+  docker compose exec <serviço> composer analyse         # PHPStan nível 8
+  docker compose exec <serviço> composer rector:dry      # Rector (simulação)
+  docker compose exec <serviço> composer rector          # Rector (aplicar refatorações)
+  docker compose exec <serviço> composer cs-fix          # PHP-CS-Fixer (PSR-12)
+  docker compose exec <serviço> composer quality         # Todos os checks do serviço
+  ```
+
+- **SonarQube (sob demanda com Docker Compose profile):**
+  ```bash
+  # 1. Subir o servidor SonarQube (http://localhost:9000 — login inicial: admin / admin)
+  docker compose --profile quality up -d sonarqube
+
+  # 2. Gerar relatórios de coverage (Clover) e PHPStan (JSON)
+  ./scripts/quality.sh
+
+  # 3. Rodar o scanner (informe o token gerado no SonarQube em .env -> SONAR_TOKEN)
+  docker compose --profile quality-scan run --rm sonar-scanner
   ```
 
 ---
