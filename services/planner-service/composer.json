@@ -32,6 +32,7 @@
     "hyperf/testing": "~3.2.0",
     "hyperf/watcher": "~3.2.0",
     "phpstan/phpstan": "^2.1",
+    "rector/rector": "^2.0",
     "swoole/ide-helper": "^6.2"
   },
   "autoload": {
@@ -50,7 +51,18 @@
   },
   "scripts": {
     "test": "co-phpunit --prepend test/bootstrap.php -c phpunit.xml --colors=always",
-    "cs-fix": "php-cs-fixer fix $1",
-    "analyse": "phpstan analyse --memory-limit 512M -l 5 ./app ./config"
+    "test:coverage": "php -d pcov.enabled=1 -d pcov.directory=app vendor/bin/co-phpunit --prepend test/bootstrap.php -c phpunit.xml --coverage-clover build/coverage/clover.xml --coverage-html build/coverage/html --coverage-text --colors=always",
+    "analyse": "phpstan analyse -c phpstan.neon --memory-limit=512M",
+    "analyse:json": "mkdir -p build/reports && phpstan analyse -c phpstan.neon --memory-limit=512M --error-format=json --no-progress > build/reports/phpstan.json",
+    "rector": "rector process",
+    "rector:dry": "rector process --dry-run",
+    "cs-fix": "php-cs-fixer fix",
+    "cs-check": "php-cs-fixer fix --dry-run --diff",
+    "quality": [
+      "@cs-check",
+      "@analyse",
+      "@rector:dry",
+      "@test"
+    ]
   }
 }
