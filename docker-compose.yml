@@ -1,0 +1,206 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: pulse-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-pulse_root_secret}
+      MYSQL_USER: ${MYSQL_USER:-pulse}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-pulse_secret}
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-pulse_root_secret}"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+    networks:
+      - pulse-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: pulse-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - pulse-net
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: pulse-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-pulse}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-pulse_secret}
+    ports:
+      - "${RABBITMQ_PORT:-5672}:5672"
+      - "${RABBITMQ_MGMT_PORT:-15672}:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    networks:
+      - pulse-net
+
+  finance-service:
+    build:
+      context: ./docker/php
+      dockerfile: Dockerfile
+    container_name: pulse-finance-service
+    restart: unless-stopped
+    working_dir: /opt/www
+    volumes:
+      - ./services/finance-service:/opt/www
+    ports:
+      - "${FINANCE_PORT:-9502}:9501"
+    environment:
+      APP_NAME: finance-service
+      APP_ENV: ${APP_ENV:-dev}
+      HYPERF_WATCH: "true"
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: finance_db
+      DB_USERNAME: ${MYSQL_USER:-pulse}
+      DB_PASSWORD: ${MYSQL_PASSWORD:-pulse_secret}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 1
+      AMQP_HOST: rabbitmq
+      AMQP_PORT: 5672
+      AMQP_USER: ${RABBITMQ_USER:-pulse}
+      AMQP_PASSWORD: ${RABBITMQ_PASSWORD:-pulse_secret}
+      AMQP_VHOST: /
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - pulse-net
+
+  planner-service:
+    build:
+      context: ./docker/php
+      dockerfile: Dockerfile
+    container_name: pulse-planner-service
+    restart: unless-stopped
+    working_dir: /opt/www
+    volumes:
+      - ./services/planner-service:/opt/www
+    ports:
+      - "${PLANNER_PORT:-9503}:9501"
+    environment:
+      APP_NAME: planner-service
+      APP_ENV: ${APP_ENV:-dev}
+      HYPERF_WATCH: "true"
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: planner_db
+      DB_USERNAME: ${MYSQL_USER:-pulse}
+      DB_PASSWORD: ${MYSQL_PASSWORD:-pulse_secret}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 2
+      AMQP_HOST: rabbitmq
+      AMQP_PORT: 5672
+      AMQP_USER: ${RABBITMQ_USER:-pulse}
+      AMQP_PASSWORD: ${RABBITMQ_PASSWORD:-pulse_secret}
+      AMQP_VHOST: /
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - pulse-net
+
+  bff-gateway:
+    build:
+      context: ./docker/php
+      dockerfile: Dockerfile
+    container_name: pulse-bff-gateway
+    restart: unless-stopped
+    working_dir: /opt/www
+    volumes:
+      - ./services/bff-gateway:/opt/www
+    ports:
+      - "${BFF_PORT:-9501}:9501"
+    environment:
+      APP_NAME: bff-gateway
+      APP_ENV: ${APP_ENV:-dev}
+      HYPERF_WATCH: "true"
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: bff_db
+      DB_USERNAME: ${MYSQL_USER:-pulse}
+      DB_PASSWORD: ${MYSQL_PASSWORD:-pulse_secret}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 0
+      AMQP_HOST: rabbitmq
+      AMQP_PORT: 5672
+      AMQP_USER: ${RABBITMQ_USER:-pulse}
+      AMQP_PASSWORD: ${RABBITMQ_PASSWORD:-pulse_secret}
+      AMQP_VHOST: /
+      JWT_SECRET: ${JWT_SECRET:-change-me-to-a-long-random-secret-key-min-32-chars}
+      FINANCE_SERVICE_URL: http://finance-service:9501
+      PLANNER_SERVICE_URL: http://planner-service:9501
+      CORS_ALLOWED_ORIGIN: http://localhost:${FRONTEND_PORT:-5173}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      finance-service:
+        condition: service_started
+      planner-service:
+        condition: service_started
+    networks:
+      - pulse-net
+
+  frontend:
+    build:
+      context: ./docker/node
+      dockerfile: Dockerfile
+    container_name: pulse-frontend
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"
+    environment:
+      VITE_API_BASE_URL: http://localhost:${BFF_PORT:-9501}
+    depends_on:
+      - bff-gateway
+    networks:
+      - pulse-net
+
+volumes:
+  mysql_data:
+  redis_data:
+  rabbitmq_data:
+
+networks:
+  pulse-net:
+    driver: bridge
