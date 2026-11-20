@@ -13,7 +13,7 @@ Referência de domínio: [business-rules.md](./business-rules.md).
 - [x] `CorrelationIdMiddleware` com `Hyperf\Context\Context` nos 3 serviços.
 - [x] Endpoint `/health` validando conexão MySQL em cada serviço.
 - [x] Endpoint inicial `GET /api/dashboard/today` no `bff-gateway` usando `Hyperf\Coroutine\Parallel`.
-- [ ] **Verificação (Done):**
+- [x] **Verificação (Done):**
   1. Copiar `.env.example` → `.env` na raiz e rodar `docker compose up -d --build`.
   2. Abrir `http://localhost:5173` e ver os 3 cards (`bff-gateway`, `finance-service`, `planner-service`) **Online** com o mesmo `correlation_id`.
   3. Acessar RabbitMQ UI em `http://localhost:15672`.
