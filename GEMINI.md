@@ -14,7 +14,7 @@ Este arquivo define o contexto arquitetural, as regras técnicas e as convençõ
 
 ## 2. Arquitetura e Stack (Monorepo + Docker)
 - **Frontend:** Vue 3 (Composition API + `<script setup lang="ts">`), TypeScript, Vite, Pinia, Vue Router, Tailwind CSS.
-- **Backend (Microserviços):** PHP 8.2+ com **Hyperf 3** (Swoole), `hyperf/database`, `hyperf/amqp`, `hyperf/redis`, `hyperf/guzzle`.
+- **Backend (Microserviços):** PHP 8.5+ com **Hyperf 3** (Swoole), `hyperf/database`, `hyperf/amqp`, `hyperf/redis`, `hyperf/guzzle`.
 - **Banco de Dados:** MySQL 8 (1 container em dev, **databases isolados por serviço**).
 - **Mensageria & Cache:** RabbitMQ (eventos assíncronos entre serviços) e Redis (cache/sessão).
 - **Orquestração local:** Docker + Docker Compose.
@@ -72,6 +72,7 @@ Este arquivo define o contexto arquitetural, as regras técnicas e as convençõ
   - Usar sempre Composition API com `<script setup lang="ts">`.
   - Organizar por módulo/domínio (`src/modules/finance`, `src/modules/planner`, `src/modules/dashboard`).
 - **Qualidade:** funções pequenas, sem duplicação desnecessária. Sempre rodar testes e linters do serviço alterado antes de concluir uma tarefa.
+- **Commits (Git):** seguir estritamente **Conventional Commits** em **inglês**, sempre incluindo um **corpo (body) detalhado** explicando o que foi alterado e o porquê (consultar a skill [conventional-commits](./.agents/skills/conventional-commits/SKILL.md)).
 
 ---
 

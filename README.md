@@ -11,7 +11,7 @@ O projeto foi construído como um ambiente prático de engenharia de software, e
 O projeto utiliza uma abordagem de **Monorepo** com containers isolados e comunicação via eventos assíncronos e chamadas paralelas.
 
 - **Frontend:** Vue 3 (Composition API, TypeScript), Vite, Pinia, Tailwind CSS.
-- **Backend:** PHP 8.2+ com [Hyperf 3](https://hyperf.wiki/) (Framework de alta performance rodando sobre Swoole/Swow).
+- **Backend:** PHP 8.5+ com [Hyperf 3](https://hyperf.wiki/) (Framework de alta performance rodando sobre Swoole/Swow).
 - **Mensageria:** RabbitMQ para eventos entre microserviços.
 - **Cache & Contexto:** Redis.
 - **Banco de Dados:** MySQL 8 (isolamento por serviço: `bff_db`, `finance_db`, `planner_db`).
